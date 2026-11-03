@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quiz App</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --border: #334155;
+      --correct: #22c55e;
+      --wrong: #ef4444;
+      --accent: #6366f1;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at top, #1e293b, var(--bg));
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      padding: 1rem;
+    }
+
+    .app {
+      width: min(100%, 520px);
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 2rem;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+    }
+
+    /* ---- Progress bar ---- */
+    .progress {
+      height: 6px;
+      background: #0f172a;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+    }
+
+    /* ---- Question ---- */
+    .question-count {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .question-text {
+      font-size: 1.25rem;
+      font-weight: 700;
+      line-height: 1.4;
+      margin: 0 0 1.5rem;
+    }
+
+    /* ---- Answers ---- */
+    .answers {
+      display: grid;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .answer {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      width: 100%;
+      text-align: left;
+      padding: 0.9rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: #0f172a;
+      color: var(--text);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    }
+
+    .answer:hover:not(:disabled) {
+      background: #172033;
+      border-color: #475569;
+    }
+
+    .answer:active:not(:disabled) {
+      transform: scale(0.99);
+    }
+
+    .answer:disabled {
+      cursor: default;
+    }
+
+    .answer .letter {
+      flex: 0 0 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      border-radius: 8px;
+      background: #1e293b;
+      border: 1px solid var(--border);
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--muted);
+    }
+
+    /* Answered states — set these classes from JS */
+    .answer.correct {
+      background: rgba(34, 197, 94, 0.15);
+      border-color: var(--correct);
+      color: #bbf7d0;
+    }
+
+    .answer.correct .letter {
+      background: var(--correct);
+      border-color: var(--correct);
+      color: #052e16;
+    }
+
+    .answer.wrong {
+      background: rgba(239, 68, 68, 0.15);
+      border-color: var(--wrong);
+      color: #fecaca;
+    }
+
+    .answer.wrong .letter {
+      background: var(--wrong);
+      border-color: var(--wrong);
+      color: #450a0a;
+    }
+
+    /* ---- Footer ---- */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .score-live {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    .score-live strong {
+      color: var(--text);
+    }
+
+    button.primary {
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #fff;
+      padding: 0.8rem 1.4rem;
+      border-radius: 12px;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.1s ease;
+    }
+
+    button.primary:hover {
+      background: #4f46e5;
+    }
+
+    button.primary:active {
+      transform: scale(0.97);
+    }
+
+    button.primary:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    /* ---- Results screen ---- */
+    .results {
+      text-align: center;
+      padding: 1rem 0;
+    }
+
+    .results.hidden {
+      display: none;
+    }
+
+    .results-emoji {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .results h2 {
+      margin: 0 0 0.5rem;
+      font-size: 1.5rem;
+    }
+
+    .results p {
+      color: var(--muted);
+      margin: 0 0 1.5rem;
+    }
+
+    .results .final-score {
+      font-size: 3rem;
+      font-weight: 800;
+      color: var(--accent);
+      line-height: 1;
+      margin-bottom: 1.5rem;
+    }
+
+    .quiz.hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <!-- ===== Quiz view ===== -->
+    <section class="quiz" id="quizView">
+      <div class="progress">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+
+      <div class="question-count" id="questionCount">Question 1 of 5</div>
+      <h2 class="question-text" id="questionText">Question text goes here</h2>
+
+      <div class="answers" id="answersContainer">
+        <!-- Answers are rendered here by JS -->
+      </div>
+
+      <div class="footer">
+        <div class="score-live">Score: <strong id="liveScore">0</strong></div>
+        <button class="primary" id="nextButton" disabled>Next</button>
+      </div>
+    </section>
+
+    <!-- ===== Results view ===== -->
+    <section class="results hidden" id="resultsView">
+      <div class="results-emoji" id="resultsEmoji">🎉</div>
+      <h2>Quiz complete!</h2>
+      <div class="final-score" id="finalScore">0 / 5</div>
+      <p id="resultsMessage">Nice work.</p>
+      <button class="primary" id="restartButton">Play again</button>
+    </section>
+  </main>
+</body>
+</html>
